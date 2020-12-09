@@ -751,6 +751,16 @@ func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.A
 	return res[:], state.Error()
 }
 
+// GetPendingLogs returns the log events that are estimated to occur if the
+// pending block was immediately mined.
+func (s *PublicBlockChainAPI) GetPendingLogs(ctx context.Context) ([]*types.Log, error) {
+    state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, rpc.BlockNumberOrHashWithNumber(rpc.PendingBlockNumber))
+    if state == nil || err != nil {
+        return nil, err
+    }
+    return state.Logs(), state.Error()
+}
+
 // CallArgs represents the arguments for a call.
 type CallArgs struct {
 	From     *common.Address `json:"from"`
