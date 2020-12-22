@@ -93,6 +93,7 @@ type EventSystem struct {
 	rmLogsSub      event.Subscription // Subscription for removed log event
 	pendingLogsSub event.Subscription // Subscription for pending log event
 	chainSub       event.Subscription // Subscription for new chain event
+	preMineSub     event.Subscription // Subscription for pre-mine commits
 
 	// Channels
 	install       chan *subscription         // install filter for event notification
@@ -102,6 +103,7 @@ type EventSystem struct {
 	pendingLogsCh chan []*types.Log          // Channel to receive new log event
 	rmLogsCh      chan core.RemovedLogsEvent // Channel to receive removed log event
 	chainCh       chan core.ChainEvent       // Channel to receive new chain event
+	preMineCh     chan types.LogBlock         // Channel to receive pre-mine commits
 }
 
 // NewEventSystem creates a new manager that listens for event on the given mux,

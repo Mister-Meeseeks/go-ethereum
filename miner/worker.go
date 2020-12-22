@@ -131,6 +131,7 @@ type worker struct {
 
 	// Feeds
 	pendingLogsFeed event.Feed
+	preMineFeed     event.Feed
 
 	// Subscriptions
 	mux          *event.TypeMux
@@ -140,6 +141,8 @@ type worker struct {
 	chainHeadSub event.Subscription
 	chainSideCh  chan core.ChainSideEvent
 	chainSideSub event.Subscription
+	preMineCh    chan types.LogBlock
+	preMineSub   event.Subscription
 
 	// Channels
 	newWorkCh          chan *newWorkReq
@@ -164,6 +167,7 @@ type worker struct {
 
 	snapshotMu    sync.RWMutex // The lock used to protect the block snapshot and state snapshot
 	snapshotBlock *types.Block
+	snapshotLogs  []types.Log
 	snapshotState *state.StateDB
 
 	// atomic status counters
@@ -716,6 +720,14 @@ func (w *worker) updateSnapshot() {
 		new(trie.Trie),
 	)
 
+	w.snapshotLogs = make([]types.Log, len(w.current.receipts))
+	for i := range w.current.receipts {
+		for j := range w.current.receipts[i].Logs {
+			var log = *w.current.receipts[i].Logs[j]
+			w.snapshotLogs = append(w.snapshotLogs,log)
+		}
+	}
+
 	w.snapshotState = w.current.state.Copy()
 }
 
@@ -1003,8 +1015,17 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	}
 	if update {
 		w.updateSnapshot()
+		w.feedPreMine()
 	}
 	return nil
+}
+
+func (w* worker) feedPreMine() {
+	var block = *w.snapshotBlock
+	lb := types.LogBlock {
+		Block: block,
+		Logs: w.snapshotLogs }
+	w.preMineFeed.Send(lb)
 }
 
 // copyReceipts makes a deep copy of the given receipts.

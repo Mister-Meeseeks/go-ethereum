@@ -141,3 +141,10 @@ func (l *LogForStorage) DecodeRLP(s *rlp.Stream) error {
 	}
 	return err
 }
+
+// Collates both the block object as well as the logs occuring in that
+// block.
+type LogBlock struct {
+	Block Block
+	Logs []Log
+}
