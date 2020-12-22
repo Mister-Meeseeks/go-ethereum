@@ -222,6 +222,6 @@ func (miner *Miner) SubscribePendingLogs(ch chan<- []*types.Log) event.Subscript
 }
 
 // SubscribePreMine starts delivering pre-mine commits to the given channel
-func (miner *Miner) SubscribePreMine(ch chan<- types.LogBlock) event.Subscription {
+func (miner *Miner) SubscribePreMine(ch chan<- *types.LogBlock) event.Subscription {
 	return miner.worker.preMineFeed.Subscribe(ch)
 }

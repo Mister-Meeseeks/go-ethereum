@@ -234,7 +234,7 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 }
 
 // NewPreMine send a notification each time a new pre-mine commit is appended to the event feed
-func (api *PublicFilterAPI) NewPreCommit(ctx context.Context) (*rpc.Subscription, error) {
+func (api *PublicFilterAPI) NewPreMine(ctx context.Context) (*rpc.Subscription, error) {
 	notifier, supported := rpc.NotifierFromContext(ctx)
 	if !supported {
 		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
