@@ -1025,6 +1025,7 @@ func (w* worker) feedPreMine() {
 	lb := types.LogBlock {
 		Block: block,
 		Logs: w.snapshotLogs }
+	log.Info("Feed pre mine snapshot", "block", block.Number(), "txs", len(w.snapshotLogs))
 	w.preMineFeed.Send(&lb)
 }
 
