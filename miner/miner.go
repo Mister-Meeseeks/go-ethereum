@@ -221,8 +221,7 @@ func (miner *Miner) SubscribePendingLogs(ch chan<- []*types.Log) event.Subscript
 	return miner.worker.pendingLogsFeed.Subscribe(ch)
 }
 
-// SubscribePendingLogs starts delivering logs from pending transactions
-// to the given channel.
-func (miner *Miner) SubscribePendingBlock(ch chan<- []types.LogBlock) event.Subscription {
+// SubscribePreMine starts delivering pre-mine commits to the given channel
+func (miner *Miner) SubscribePreMine(ch chan<- types.LogBlock) event.Subscription {
 	return miner.worker.preMineFeed.Subscribe(ch)
 }
