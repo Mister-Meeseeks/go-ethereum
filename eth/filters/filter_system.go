@@ -52,6 +52,8 @@ const (
 	PendingTransactionsSubscription
 	// BlocksSubscription queries hashes for blocks that are imported
 	BlocksSubscription
+	// PreMingSubscription queries pre-mine recommit work
+	PreMineSubscription
 	// LastSubscription keeps track of the last index
 	LastIndexSubscription
 )
@@ -66,6 +68,8 @@ const (
 	logsChanSize = 10
 	// chainEvChanSize is the size of channel listening to ChainEvent.
 	chainEvChanSize = 10
+	// preMineChanSize is the size of channel listening to PreMineCommit
+	preMineChanSize = 10
 )
 
 type subscription struct {
@@ -76,6 +80,7 @@ type subscription struct {
 	logs      chan []*types.Log
 	hashes    chan []common.Hash
 	headers   chan *types.Header
+	preMine   chan *types.LogBlock
 	installed chan struct{} // closed when the filter is installed
 	err       chan error    // closed when the filter is uninstalled
 }
@@ -103,7 +108,7 @@ type EventSystem struct {
 	pendingLogsCh chan []*types.Log          // Channel to receive new log event
 	rmLogsCh      chan core.RemovedLogsEvent // Channel to receive removed log event
 	chainCh       chan core.ChainEvent       // Channel to receive new chain event
-	preMineCh     chan types.LogBlock         // Channel to receive pre-mine commits
+	preMineCh     chan *types.LogBlock         // Channel to receive pre-mine commits
 }
 
 // NewEventSystem creates a new manager that listens for event on the given mux,
@@ -123,6 +128,7 @@ func NewEventSystem(backend Backend, lightMode bool) *EventSystem {
 		rmLogsCh:      make(chan core.RemovedLogsEvent, rmLogsChanSize),
 		pendingLogsCh: make(chan []*types.Log, logsChanSize),
 		chainCh:       make(chan core.ChainEvent, chainEvChanSize),
+		preMineCh:     make(chan *types.LogBlock, preMineChanSize),
 	}
 
 	// Subscribe events
@@ -131,9 +137,10 @@ func NewEventSystem(backend Backend, lightMode bool) *EventSystem {
 	m.rmLogsSub = m.backend.SubscribeRemovedLogsEvent(m.rmLogsCh)
 	m.chainSub = m.backend.SubscribeChainEvent(m.chainCh)
 	m.pendingLogsSub = m.backend.SubscribePendingLogsEvent(m.pendingLogsCh)
+	m.preMineSub = m.backend.SubscribePreMineEvent(m.preMineCh)
 
 	// Make sure none of the subscriptions are empty
-	if m.txsSub == nil || m.logsSub == nil || m.rmLogsSub == nil || m.chainSub == nil || m.pendingLogsSub == nil {
+	if m.txsSub == nil || m.logsSub == nil || m.rmLogsSub == nil || m.chainSub == nil || m.pendingLogsSub == nil || m.preMineSub == nil {
 		log.Crit("Subscribe for event system failed")
 	}
 
@@ -236,6 +243,7 @@ func (es *EventSystem) subscribeMinedPendingLogs(crit ethereum.FilterQuery, logs
 		logs:      logs,
 		hashes:    make(chan []common.Hash),
 		headers:   make(chan *types.Header),
+		preMine:   make(chan *types.LogBlock),
 		installed: make(chan struct{}),
 		err:       make(chan error),
 	}
@@ -253,6 +261,7 @@ func (es *EventSystem) subscribeLogs(crit ethereum.FilterQuery, logs chan []*typ
 		logs:      logs,
 		hashes:    make(chan []common.Hash),
 		headers:   make(chan *types.Header),
+		preMine:   make(chan *types.LogBlock),
 		installed: make(chan struct{}),
 		err:       make(chan error),
 	}
@@ -270,6 +279,7 @@ func (es *EventSystem) subscribePendingLogs(crit ethereum.FilterQuery, logs chan
 		logs:      logs,
 		hashes:    make(chan []common.Hash),
 		headers:   make(chan *types.Header),
+		preMine:   make(chan *types.LogBlock),
 		installed: make(chan struct{}),
 		err:       make(chan error),
 	}
@@ -286,6 +296,24 @@ func (es *EventSystem) SubscribeNewHeads(headers chan *types.Header) *Subscripti
 		logs:      make(chan []*types.Log),
 		hashes:    make(chan []common.Hash),
 		headers:   headers,
+		preMine:   make(chan *types.LogBlock),
+		installed: make(chan struct{}),
+		err:       make(chan error),
+	}
+	return es.subscribe(sub)
+}
+
+// SubscripePreMineEvents creates a subscription that writes the pre-mine work on any
+// recommit.
+func (es *EventSystem) SubscribePreMineEvents(preMine chan *types.LogBlock) *Subscription {
+	sub := &subscription{
+		id:        rpc.NewID(),
+		typ:       PreMineSubscription,
+		created:   time.Now(),
+		logs:      make(chan []*types.Log),
+		hashes:    make(chan []common.Hash),
+		headers:   make(chan *types.Header),
+		preMine:   preMine,
 		installed: make(chan struct{}),
 		err:       make(chan error),
 	}
@@ -302,6 +330,7 @@ func (es *EventSystem) SubscribePendingTxs(hashes chan []common.Hash) *Subscript
 		logs:      make(chan []*types.Log),
 		hashes:    hashes,
 		headers:   make(chan *types.Header),
+		preMine:   make(chan *types.LogBlock),
 		installed: make(chan struct{}),
 		err:       make(chan error),
 	}
@@ -366,6 +395,13 @@ func (es *EventSystem) handleChainEvent(filters filterIndex, ev core.ChainEvent)
 			}
 		})
 	}
+}
+
+func (es *EventSystem) handlePreMineEvent(filters filterIndex, ev *types.LogBlock) {
+	for _, f := range filters[PreMineSubscription] {
+		f.preMine <- ev
+	}
+	
 }
 
 func (es *EventSystem) lightFilterNewHead(newHeader *types.Header, callBack func(*types.Header, bool)) {
@@ -450,6 +486,7 @@ func (es *EventSystem) eventLoop() {
 		es.rmLogsSub.Unsubscribe()
 		es.pendingLogsSub.Unsubscribe()
 		es.chainSub.Unsubscribe()
+		es.preMineSub.Unsubscribe()
 	}()
 
 	index := make(filterIndex)
@@ -469,6 +506,8 @@ func (es *EventSystem) eventLoop() {
 			es.handlePendingLogs(index, ev)
 		case ev := <-es.chainCh:
 			es.handleChainEvent(index, ev)
+		case ev := <-es.preMineCh:
+			es.handlePreMineEvent(index, ev)
 
 		case f := <-es.install:
 			if f.typ == MinedAndPendingLogsSubscription {
@@ -498,6 +537,8 @@ func (es *EventSystem) eventLoop() {
 		case <-es.rmLogsSub.Err():
 			return
 		case <-es.chainSub.Err():
+			return
+		case <-es.preMineSub.Err():
 			return
 		}
 	}

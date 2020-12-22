@@ -233,6 +233,36 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 	return rpcSub, nil
 }
 
+// NewPreMine send a notification each time a new pre-mine commit is appended to the event feed
+func (api *PublicFilterAPI) NewPreCommit(ctx context.Context) (*rpc.Subscription, error) {
+	notifier, supported := rpc.NotifierFromContext(ctx)
+	if !supported {
+		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
+	}
+
+	rpcSub := notifier.CreateSubscription()
+
+	go func() {
+		commits := make(chan *types.LogBlock)
+		commitSub := api.events.SubscribePreMineEvents(commits)
+
+		for {
+			select {
+			case c := <-commits:
+				notifier.Notify(rpcSub.ID, c)
+			case <-rpcSub.Err():
+				commitSub.Unsubscribe()
+				return
+			case <-notifier.Closed():
+				commitSub.Unsubscribe()
+				return
+			}
+		}
+	}()
+
+	return rpcSub, nil
+}
+
 // Logs creates a subscription that fires for all new log that match the given filter criteria.
 func (api *PublicFilterAPI) Logs(ctx context.Context, crit FilterCriteria) (*rpc.Subscription, error) {
 	notifier, supported := rpc.NotifierFromContext(ctx)

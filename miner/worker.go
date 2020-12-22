@@ -141,7 +141,7 @@ type worker struct {
 	chainHeadSub event.Subscription
 	chainSideCh  chan core.ChainSideEvent
 	chainSideSub event.Subscription
-	preMineCh    chan types.LogBlock
+	preMineCh    chan *types.LogBlock
 	preMineSub   event.Subscription
 
 	// Channels
@@ -1025,7 +1025,7 @@ func (w* worker) feedPreMine() {
 	lb := types.LogBlock {
 		Block: block,
 		Logs: w.snapshotLogs }
-	w.preMineFeed.Send(lb)
+	w.preMineFeed.Send(&lb)
 }
 
 // copyReceipts makes a deep copy of the given receipts.
