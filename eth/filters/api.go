@@ -249,7 +249,8 @@ func (api *PublicFilterAPI) NewPreMine(ctx context.Context) (*rpc.Subscription, 
 		for {
 			select {
 			case c := <-commits:
-				notifier.Notify(rpcSub.ID, c)
+				pm := formatPreMine(c)
+				notifier.Notify(rpcSub.ID, pm)
 			case <-rpcSub.Err():
 				commitSub.Unsubscribe()
 				return
@@ -261,6 +262,20 @@ func (api *PublicFilterAPI) NewPreMine(ctx context.Context) (*rpc.Subscription, 
 	}()
 
 	return rpcSub, nil
+}
+
+type PreMineSnapshot struct {
+	Header        types.Header
+	Transactions  []types.Transaction
+	Logs          []types.Log
+}
+
+func formatPreMine (commit *types.LogBlock) PreMineSnapshot {
+	trans := make([]types.Transaction, len(commit.Block.Body().Transactions))
+	for i, tx := range commit.Block.Body().Transactions {
+		trans[i] = *tx
+	}
+	return PreMineSnapshot{*commit.Block.Header(), trans, commit.Logs}
 }
 
 // Logs creates a subscription that fires for all new log that match the given filter criteria.
