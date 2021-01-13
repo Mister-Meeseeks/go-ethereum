@@ -862,9 +862,13 @@ func (pm *ProtocolManager) BroadcastTransactions(txs types.Transactions, propaga
 	if propagate {
 		for _, tx := range txs {
 			peers := pm.peers.PeersWithoutTx(tx.Hash())
-
-			// Send the block to a subset of our peers
-			transfer := peers[:int(math.Sqrt(float64(len(peers))))]
+			
+			/* // Send the block to a subset of our peers
+			transfer := peers[:int(math.Sqrt(float64(len(peers))))] */
+			
+			// Forked from vanilla Geth, to improve propogation
+			// latency broadcast to *all* peers
+			transfer := peers
 			for _, peer := range transfer {
 				txset[peer] = append(txset[peer], tx.Hash())
 			}
