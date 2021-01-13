@@ -335,9 +335,10 @@ func (d *dialScheduler) logStats() {
 	if d.lastStatsLog.Add(dialStatsLogInterval) > now {
 		return
 	}
-	if d.dialPeers < dialStatsPeerLimit && d.dialPeers < d.maxDialPeers {
+	/*if d.dialPeers < dialStatsPeerLimit && d.dialPeers < d.maxDialPeers {
 		d.log.Info("Looking for peers", "peercount", len(d.peers), "tried", d.doneSinceLastLog, "static", len(d.static))
-	}
+	}*/
+	d.log.Info("Looking for peers", "peercount", len(d.peers), "tried", d.doneSinceLastLog, "static", len(d.static), "dialPeers", d.dialPeers, "limit", dialStatsPeerLimit, "maxDial", d.maxDialPeers)
 	d.doneSinceLastLog = 0
 	d.lastStatsLog = now
 }
