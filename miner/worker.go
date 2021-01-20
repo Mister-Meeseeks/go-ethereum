@@ -969,7 +969,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	// priority inclusion. We're not actually mining, just using this to
 	// predict the next block. Therefore we want to treat our own txs as
 	// a third party would.
-	remoteTxs := make(map[common.Address]types.Transactions)
+	remoteTxs := pending
 	
 	// // Split the pending transactions into locals and remotes
 	// localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
