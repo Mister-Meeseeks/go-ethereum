@@ -964,20 +964,28 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		w.updateSnapshot()
 		return
 	}
-	// Split the pending transactions into locals and remotes
-	localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
-	for _, account := range w.eth.TxPool().Locals() {
-		if txs := remoteTxs[account]; len(txs) > 0 {
-			delete(remoteTxs, account)
-			localTxs[account] = txs
-		}
-	}
-	if len(localTxs) > 0 {
-		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
-		if w.commitTransactions(txs, w.coinbase, interrupt) {
-			return
-		}
-	}
+	
+	// Fork behavior from standard Geth. Do not separate localTxs for
+	// priority inclusion. We're not actually mining, just using this to
+	// predict the next block. Therefore we want to treat our own txs as
+	// a third party would.
+	remoteTxs := make(map[common.Address]types.Transactions)
+	
+	// // Split the pending transactions into locals and remotes
+	// localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
+	// for _, account := range w.eth.TxPool().Locals() {
+	// 	if txs := remoteTxs[account]; len(txs) > 0 {
+	// 		delete(remoteTxs, account)
+	// 		localTxs[account] = txs
+	// 	}
+	// }
+	// if len(localTxs) > 0 {
+	// 	txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
+	// 	if w.commitTransactions(txs, w.coinbase, interrupt) {
+	// 		return
+	// 	}
+	// }
+
 	if len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
 		if w.commitTransactions(txs, w.coinbase, interrupt) {
