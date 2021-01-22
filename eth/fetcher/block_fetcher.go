@@ -241,7 +241,7 @@ func (f *BlockFetcher) Stop() {
 // the network.
 func (f *BlockFetcher) Notify(peer string, hash common.Hash, number uint64, time time.Time,
 	headerFetcher headerRequesterFn, bodyFetcher bodyRequesterFn) error {
-	log.Info("Notify new block header blockNum", number, "hash", hash, "time", time, "peer", peer)
+	log.Info("Notify new block header", "blockNum", number, "hash", hash, "time", time, "peer", peer)
 	block := &blockAnnounce{
 		hash:        hash,
 		number:      number,
