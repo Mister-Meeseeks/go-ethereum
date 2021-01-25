@@ -355,7 +355,7 @@ func (es *EventSystem) SubscribePendingTxs(hashes chan []common.Hash) *Subscript
 
 // subscribeBlockAnnounce creates a subscription that returns block announce events
 // at the time they're received off the network.
-func (es *EventSystem) subscribeBlockAnnounce(anns chan *types.BlockAnnounce) *Subscription {
+func (es *EventSystem) SubscribeBlockAnnounce(anns chan *types.BlockAnnounce) *Subscription {
 	sub := &subscription{
 		id:        rpc.NewID(),
 		typ:       BlockAnnounceSubscription,

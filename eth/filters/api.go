@@ -264,6 +264,36 @@ func (api *PublicFilterAPI) NewPreMine(ctx context.Context) (*rpc.Subscription, 
 	return rpcSub, nil
 }
 
+// NewBlockAnnounce send a notification each time a new block announcement is received on the network
+func (api *PublicFilterAPI) NewBlockAnnounce(ctx context.Context) (*rpc.Subscription, error) {
+	notifier, supported := rpc.NotifierFromContext(ctx)
+	if !supported {
+		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
+	}
+
+	rpcSub := notifier.CreateSubscription()
+
+	go func() {
+		commits := make(chan *types.BlockAnnounce)
+		commitSub := api.events.SubscribeBlockAnnounce(commits)
+
+		for {
+			select {
+			case ba := <-commits:
+				notifier.Notify(rpcSub.ID, ba)
+			case <-rpcSub.Err():
+				commitSub.Unsubscribe()
+				return
+			case <-notifier.Closed():
+				commitSub.Unsubscribe()
+				return
+			}
+		}
+	}()
+
+	return rpcSub, nil
+}
+
 type PreMineSnapshot struct {
 	Header        types.Header
 	Transactions  []types.Transaction
