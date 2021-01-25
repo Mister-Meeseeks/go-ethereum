@@ -87,6 +87,9 @@ type ProtocolManager struct {
 
 	whitelist map[uint64]common.Hash
 
+	// Feeds
+	newBlockHashFeed   event.Feed
+	
 	// channels for fetcher, syncer, txsyncLoop
 	txsyncCh chan *txsync
 	quitSync chan struct{}
@@ -704,6 +707,10 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		for _, block := range unknown {
 			pm.blockFetcher.Notify(p.id, block.Hash, block.Number, time.Now(), p.RequestOneHeader, p.RequestBodies)
+			ab := types.BlockAnnounce {
+				Hash: block.Hash,
+				Number: block.Number }
+			pm.newBlockHashFeed.Send(&ab)
 		}
 
 	case msg.Code == NewBlockMsg:
@@ -949,4 +956,9 @@ func (pm *ProtocolManager) NodeInfo() *NodeInfo {
 		Config:     pm.blockchain.Config(),
 		Head:       currentBlock.Hash(),
 	}
+}
+
+
+func (pm *ProtocolManager) SubscribeBlockAnnounce(ch chan<- *types.BlockAnnounce) event.Subscription {
+	return pm.newBlockHashFeed.Subscribe(ch)
 }
