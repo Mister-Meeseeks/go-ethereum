@@ -242,6 +242,13 @@ func (b *LesApiBackend) SubscribePreMineEvent(ch chan<- *types.LogBlock) event.S
 	})
 }
 
+func (b *LesApiBackend) SubscribeBlockAnnounceEvent(ch chan<- *types.BlockAnnounce) event.Subscription {
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		<-quit
+		return nil
+	})
+}
+
 func (b *LesApiBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
 	return b.eth.blockchain.SubscribeRemovedLogsEvent(ch)
 }

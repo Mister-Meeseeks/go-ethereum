@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/bloombits"
@@ -43,6 +42,7 @@ type Backend interface {
 	SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription
 	SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription
 	SubscribePreMineEvent(ch chan<- *types.LogBlock) event.Subscription
+	SubscribeBlockAnnounceEvent(ch chan<- *types.BlockAnnounce) event.Subscription
 
 	BloomStatus() (uint64, uint64)
 	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)
