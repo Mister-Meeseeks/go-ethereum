@@ -54,11 +54,11 @@ const (
 	BlocksSubscription
 	// PreMingSubscription queries pre-mine recommit work
 	PreMineSubscription
-	// LastSubscription keeps track of the last index
-	LastIndexSubscription
 	// BlockAnnounceSubscription queries for new block announcements on
 	// the network.
 	BlockAnnounceSubscription
+	// LastSubscription keeps track of the last index
+	LastIndexSubscription
 )
 
 const (
