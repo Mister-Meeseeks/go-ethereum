@@ -141,8 +141,6 @@ type worker struct {
 	chainHeadSub event.Subscription
 	chainSideCh  chan core.ChainSideEvent
 	chainSideSub event.Subscription
-	preMineCh    chan *types.LogBlock
-	preMineSub   event.Subscription
 
 	// Channels
 	newWorkCh          chan *newWorkReq
