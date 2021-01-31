@@ -874,15 +874,21 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		time.Sleep(wait)
 	}
 
+	// Since we're not actually mining, replace the true block size with a preset
+	// larger block to give us better transparency into the pending txPool. Current
+	// block size is 12.5 million, so 20 million gives us a reasonably expectation
+	// of what we can expect to see mined in the next few blocks.
+	const PRE_MIN_GLOCK_GAS = 20000000
+	
 	num := parent.Number()
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
-		GasLimit:   core.CalcGasLimit(parent, w.config.GasFloor, w.config.GasCeil),
+		GasLimit:   PRE_MINE_BLOCK_GAS
+		//GasLimit:   core.CalcGasLimit(parent, w.config.GasFloor, w.config.GasCeil),
 		Extra:      w.extra,
 		Time:       uint64(timestamp),
 	}
-	log.Info("Commit New Mining Work", "GasLimit", header.GasLimit)
 	
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() {
