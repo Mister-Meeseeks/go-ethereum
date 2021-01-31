@@ -884,7 +884,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
-		GasLimit:   PRE_MINE_BLOCK_GAS
+		GasLimit:   PRE_MINE_BLOCK_GAS,
 		//GasLimit:   core.CalcGasLimit(parent, w.config.GasFloor, w.config.GasCeil),
 		Extra:      w.extra,
 		Time:       uint64(timestamp),
