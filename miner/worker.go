@@ -878,7 +878,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	// larger block to give us better transparency into the pending txPool. Current
 	// block size is 12.5 million, so 20 million gives us a reasonably expectation
 	// of what we can expect to see mined in the next few blocks.
-	const PRE_MIN_BLOCK_GAS = 20000000
+	const PRE_MINE_BLOCK_GAS = 20000000
 	
 	num := parent.Number()
 	header := &types.Header{
