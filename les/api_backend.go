@@ -37,6 +37,7 @@ import (
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/miner"
 )
 
 type LesApiBackend struct {
@@ -235,7 +236,7 @@ func (b *LesApiBackend) SubscribePendingLogsEvent(ch chan<- []*types.Log) event.
 	})
 }
 
-func (b *LesApiBackend) SubscribePreMineEvent(ch chan<- *types.LogBlock) event.Subscription {
+func (b *LesApiBackend) SubscribePreMineEvent(ch chan<- *miner.PreMineCommit) event.Subscription {
 	return event.NewSubscription(func(quit <-chan struct{}) error {
 		<-quit
 		return nil

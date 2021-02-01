@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/miner"
 )
 
 type Backend interface {
@@ -41,7 +42,7 @@ type Backend interface {
 	SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription
 	SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription
 	SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription
-	SubscribePreMineEvent(ch chan<- *types.LogBlock) event.Subscription
+	SubscribePreMineEvent(ch chan<- *miner.PreMineCommit) event.Subscription
 	SubscribeBlockAnnounceEvent(ch chan<- *types.BlockAnnounce) event.Subscription
 
 	BloomStatus() (uint64, uint64)

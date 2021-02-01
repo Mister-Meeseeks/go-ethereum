@@ -34,6 +34,7 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/miner"
 )
 
 // Backend interface provides the common API services (that are provided by
@@ -85,7 +86,7 @@ type Backend interface {
 	SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription
 	SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription
 	SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription
-	SubscribePreMineEvent(ch chan<- *types.LogBlock) event.Subscription
+	SubscribePreMineEvent(ch chan<- *miner.PreMineCommit) event.Subscription
 	SubscribeBlockAnnounceEvent(ch chan<- *types.BlockAnnounce) event.Subscription
 	ChainConfig() *params.ChainConfig
 	Engine() consensus.Engine

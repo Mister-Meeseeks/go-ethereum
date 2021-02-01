@@ -32,6 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/miner"
 )
 
 // Type determines the kind of filter and is used to put the filter in to
@@ -85,7 +86,7 @@ type subscription struct {
 	logs      chan []*types.Log
 	hashes    chan []common.Hash
 	headers   chan *types.Header
-	preMine   chan *types.LogBlock
+	preMine   chan *miner.PreMineCommit
 	blockAnnounce  chan *types.BlockAnnounce
 	installed chan struct{} // closed when the filter is installed
 	err       chan error    // closed when the filter is uninstalled
@@ -115,7 +116,7 @@ type EventSystem struct {
 	pendingLogsCh chan []*types.Log          // Channel to receive new log event
 	rmLogsCh      chan core.RemovedLogsEvent // Channel to receive removed log event
 	chainCh       chan core.ChainEvent       // Channel to receive new chain event
-	preMineCh     chan *types.LogBlock         // Channel to receive pre-mine commits
+	preMineCh     chan *miner.PreMineCommit         // Channel to receive pre-mine commits
 	blockAnnounceCh   chan *types.BlockAnnounce  // Channel to receive block announcements
 }
 
@@ -136,7 +137,7 @@ func NewEventSystem(backend Backend, lightMode bool) *EventSystem {
 		rmLogsCh:      make(chan core.RemovedLogsEvent, rmLogsChanSize),
 		pendingLogsCh: make(chan []*types.Log, logsChanSize),
 		chainCh:       make(chan core.ChainEvent, chainEvChanSize),
-		preMineCh:     make(chan *types.LogBlock, preMineChanSize),
+		preMineCh:     make(chan *miner.PreMineCommit, preMineChanSize),
 		blockAnnounceCh:  make(chan *types.BlockAnnounce, blockAnnounceChanSize),
 	}
 
@@ -253,7 +254,7 @@ func (es *EventSystem) subscribeMinedPendingLogs(crit ethereum.FilterQuery, logs
 		logs:      logs,
 		hashes:    make(chan []common.Hash),
 		headers:   make(chan *types.Header),
-		preMine:   make(chan *types.LogBlock),
+		preMine:   make(chan *miner.PreMineCommit),
 		blockAnnounce:   make(chan *types.BlockAnnounce),
 		installed: make(chan struct{}),
 		err:       make(chan error),
@@ -272,7 +273,7 @@ func (es *EventSystem) subscribeLogs(crit ethereum.FilterQuery, logs chan []*typ
 		logs:      logs,
 		hashes:    make(chan []common.Hash),
 		headers:   make(chan *types.Header),
-		preMine:   make(chan *types.LogBlock),
+		preMine:   make(chan *miner.PreMineCommit),
 		blockAnnounce:   make(chan *types.BlockAnnounce),
 		installed: make(chan struct{}),
 		err:       make(chan error),
@@ -291,7 +292,7 @@ func (es *EventSystem) subscribePendingLogs(crit ethereum.FilterQuery, logs chan
 		logs:      logs,
 		hashes:    make(chan []common.Hash),
 		headers:   make(chan *types.Header),
-		preMine:   make(chan *types.LogBlock),
+		preMine:   make(chan *miner.PreMineCommit),
 		blockAnnounce:   make(chan *types.BlockAnnounce),
 		installed: make(chan struct{}),
 		err:       make(chan error),
@@ -309,7 +310,7 @@ func (es *EventSystem) SubscribeNewHeads(headers chan *types.Header) *Subscripti
 		logs:      make(chan []*types.Log),
 		hashes:    make(chan []common.Hash),
 		headers:   headers,
-		preMine:   make(chan *types.LogBlock),
+		preMine:   make(chan *miner.PreMineCommit),
 		blockAnnounce:   make(chan *types.BlockAnnounce),
 		installed: make(chan struct{}),
 		err:       make(chan error),
@@ -319,7 +320,7 @@ func (es *EventSystem) SubscribeNewHeads(headers chan *types.Header) *Subscripti
 
 // SubscripePreMineEvents creates a subscription that writes the pre-mine work on any
 // recommit.
-func (es *EventSystem) SubscribePreMineEvents(preMine chan *types.LogBlock) *Subscription {
+func (es *EventSystem) SubscribePreMineEvents(preMine chan *miner.PreMineCommit) *Subscription {
 	sub := &subscription{
 		id:        rpc.NewID(),
 		typ:       PreMineSubscription,
@@ -345,7 +346,7 @@ func (es *EventSystem) SubscribePendingTxs(hashes chan []common.Hash) *Subscript
 		logs:      make(chan []*types.Log),
 		hashes:    hashes,
 		headers:   make(chan *types.Header),
-		preMine:   make(chan *types.LogBlock),
+		preMine:   make(chan *miner.PreMineCommit),
 		blockAnnounce:   make(chan *types.BlockAnnounce),
 		installed: make(chan struct{}),
 		err:       make(chan error),
@@ -363,7 +364,7 @@ func (es *EventSystem) SubscribeBlockAnnounce(anns chan *types.BlockAnnounce) *S
 		logs:      make(chan []*types.Log),
 		hashes:    make(chan []common.Hash),
 		headers:   make(chan *types.Header),
-		preMine:   make(chan *types.LogBlock),
+		preMine:   make(chan *miner.PreMineCommit),
 		blockAnnounce:   anns,
 		installed: make(chan struct{}),
 		err:       make(chan error),
@@ -431,7 +432,7 @@ func (es *EventSystem) handleChainEvent(filters filterIndex, ev core.ChainEvent)
 	}
 }
 
-func (es *EventSystem) handlePreMineEvent(filters filterIndex, ev *types.LogBlock) {
+func (es *EventSystem) handlePreMineEvent(filters filterIndex, ev *miner.PreMineCommit) {
 	for _, f := range filters[PreMineSubscription] {
 		f.preMine <- ev
 	}

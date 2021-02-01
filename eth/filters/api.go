@@ -32,6 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/miner"
 )
 
 var (
@@ -243,7 +244,7 @@ func (api *PublicFilterAPI) NewPreMine(ctx context.Context) (*rpc.Subscription, 
 	rpcSub := notifier.CreateSubscription()
 
 	go func() {
-		commits := make(chan *types.LogBlock)
+		commits := make(chan *miner.PreMineCommit)
 		commitSub := api.events.SubscribePreMineEvents(commits)
 
 		for {
@@ -297,15 +298,19 @@ func (api *PublicFilterAPI) NewBlockAnnounce(ctx context.Context) (*rpc.Subscrip
 type PreMineSnapshot struct {
 	Header        types.Header
 	Transactions  []types.Transaction
-	Logs          []types.Log
+	Receipts      []types.Receipt
 }
 
-func formatPreMine (commit *types.LogBlock) PreMineSnapshot {
+func formatPreMine (commit *miner.PreMineCommit) PreMineSnapshot {
 	trans := make([]types.Transaction, len(commit.Block.Body().Transactions))
 	for i, tx := range commit.Block.Body().Transactions {
 		trans[i] = *tx
 	}
-	return PreMineSnapshot{*commit.Block.Header(), trans, commit.Logs}
+	receipts := make([]types.Receipt, len(commit.Receipts))
+	for i, rec := range commit.Receipts {
+		receipts[i] = *rec
+	}
+	return PreMineSnapshot{*commit.Block.Header(), trans, receipts}
 }
 
 // Logs creates a subscription that fires for all new log that match the given filter criteria.

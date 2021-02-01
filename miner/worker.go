@@ -164,9 +164,9 @@ type worker struct {
 	pendingTasks map[common.Hash]*task
 
 	snapshotMu    sync.RWMutex // The lock used to protect the block snapshot and state snapshot
-	snapshotBlock *types.Block
-	snapshotLogs  [][]*types.Log
-	snapshotState *state.StateDB
+	snapshotBlock     *types.Block
+	snapshotReceipts  []*types.Receipt
+	snapshotState     *state.StateDB
 
 	// atomic status counters
 	running int32 // The indicator whether the consensus engine is running or not.
@@ -718,12 +718,9 @@ func (w *worker) updateSnapshot() {
 		new(trie.Trie),
 	)
 
-	w.snapshotLogs = make([][]*types.Log, len(w.current.receipts))
+	w.snapshotReceipts = make([]*types.Receipt, len(w.current.receipts))
 	for i := range w.current.receipts {
-		w.snapshotLogs[i] = make([]*types.Log, len(w.current.receipts[i].Logs))
-		for j := range w.current.receipts[i].Logs {
-			w.snapshotLogs[i][j] = w.current.receipts[i].Logs[j]
-		}
+		w.snapshotReceipts[i] = w.current.receipts[i]
 	}
 
 	w.snapshotState = w.current.state.Copy()
@@ -1036,16 +1033,11 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 }
 
 func (w* worker) feedPreMine() {
-	var block = *w.snapshotBlock
-	var logs []types.Log
-	for i := 0; i < w.current.tcount; i++ {
-		for _, l := range w.snapshotLogs[i] {
-			logs = append(logs, *l)
-		}
-	}
-	lb := types.LogBlock {
+	var block =  *w.snapshotBlock
+	receipts := w.snapshotReceipts
+	lb := PreMineCommit {
 		Block: block,
-		Logs: logs }
+		Receipts: receipts }
 	w.preMineFeed.Send(&lb)
 }
 

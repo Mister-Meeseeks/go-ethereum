@@ -43,6 +43,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/miner"
 )
 
 // This nil assignment ensures at compile time that SimulatedBackend implements bind.ContractBackend.
@@ -782,7 +783,7 @@ func (fb *filterBackend) SubscribePendingLogsEvent(ch chan<- []*types.Log) event
 	return nullSubscription()
 }
 
-func (fb *filterBackend) SubscribePreMineEvent(ch chan<- *types.LogBlock) event.Subscription {
+func (fb *filterBackend) SubscribePreMineEvent(ch chan<- *miner.PreMineCommit) event.Subscription {
 	return nullSubscription()
 }
 
