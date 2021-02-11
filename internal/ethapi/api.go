@@ -1395,6 +1395,26 @@ func (s *PublicTransactionPoolAPI) GetTransactionByHash(ctx context.Context, has
 	return nil, nil
 }
 
+// GetTransactionByHashByHash returns the pool transaction for the given hash
+func (s *PublicTransactionPoolAPI) GetPoolTransactionByHash(hash common.Hash) (*RPCTransaction, error) {
+	if tx := s.b.GetPoolTransaction(hash); tx != nil {
+		return newRPCPendingTransaction(tx), nil
+	}
+
+	// Transaction unknown, return as such
+	return nil, nil
+}
+
+// GetTransactionByHash returns the the pool transactions from the given address
+func (s *PublicTransactionPoolAPI) GetPoolTransactionsFromAddr(addr common.Address) ([]*RPCTransaction, error) {
+	txs := s.b.FromPoolAddr(addr)
+	lifted := make([]*RPCTransaction, len(txs))
+	for i, tx := range txs {
+		lifted[i] = newRPCPendingTransaction(tx)
+	}
+	return lifted, nil
+}
+
 // GetRawTransactionByHash returns the bytes of the transaction for the given hash.
 func (s *PublicTransactionPoolAPI) GetRawTransactionByHash(ctx context.Context, hash common.Hash) (hexutil.Bytes, error) {
 	// Retrieve a finalized transaction, or a pooled otherwise
