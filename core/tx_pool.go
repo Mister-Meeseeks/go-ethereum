@@ -871,6 +871,14 @@ func (pool *TxPool) Get(hash common.Hash) *types.Transaction {
 	return pool.all.Get(hash)
 }
 
+func (pool *TxPool) FromAddr (addr common.Address) []*types.Transaction {
+	vals, ok := pool.pending[addr]
+	if (!ok) {
+		return nil
+	}
+	return vals.Flatten()
+}
+
 // Has returns an indicator whether txpool has a transaction cached with the
 // given hash.
 func (pool *TxPool) Has(hash common.Hash) bool {
