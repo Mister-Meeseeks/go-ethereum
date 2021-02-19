@@ -85,7 +85,8 @@ type ProtocolManager struct {
 	txsSub        event.Subscription
 	minedBlockSub *event.TypeMuxSubscription
 
-	whitelist map[uint64]common.Hash
+	whitelist   map[uint64]common.Hash
+	firstPartyDest  common.Address
 
 	// Feeds
 	newBlockHashFeed   event.Feed
@@ -102,6 +103,9 @@ type ProtocolManager struct {
 	broadcastTxAnnouncesOnly bool // Testing field, disable transaction propagation
 }
 
+// Hardcoded to be the address of the smart contract that we use. Make sure to update, if we deploy to a different address
+const FIRST_PARTY_GATEWAY = "0x03c9434DC227901835b4460957C9B7D098963Bc0"
+
 // NewProtocolManager returns a new Ethereum sub protocol manager. The Ethereum sub protocol manages peers capable
 // with the Ethereum network.
 func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCheckpoint, mode downloader.SyncMode, networkID uint64, mux *event.TypeMux, txpool txPool, engine consensus.Engine, blockchain *core.BlockChain, chaindb ethdb.Database, cacheLimit int, whitelist map[uint64]common.Hash) (*ProtocolManager, error) {
@@ -115,6 +119,7 @@ func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCh
 		chaindb:    chaindb,
 		peers:      newPeerSet(),
 		whitelist:  whitelist,
+		firstPartyDest:  common.HexToAddress(FIRST_PARTY_GATEWAY),
 		txsyncCh:   make(chan *txsync),
 		quitSync:   make(chan struct{}),
 	}
@@ -868,13 +873,14 @@ func (pm *ProtocolManager) BroadcastTransactions(txs types.Transactions, propaga
 	if propagate {
 		for _, tx := range txs {
 			peers := pm.peers.PeersWithoutTx(tx.Hash())
-			
-			/* // Send the block to a subset of our peers
-			transfer := peers[:int(math.Sqrt(float64(len(peers))))] */
-			
+
 			// Forked from vanilla Geth, to improve propogation
-			// latency broadcast to *all* peers
-			transfer := peers
+			// latency broadcast our own transactions to *all* peers
+			transfer := peers[:int(math.Sqrt(float64(len(peers))))]
+			if (pm.isTurboProp(tx)) {
+				transfer = peers
+			} 
+
 			for _, peer := range transfer {
 				txset[peer] = append(txset[peer], tx.Hash())
 			}
@@ -899,6 +905,20 @@ func (pm *ProtocolManager) BroadcastTransactions(txs types.Transactions, propaga
 			peer.AsyncSendTransactions(hashes)
 		}
 	}
+}
+
+func (pm *ProtocolManager) isTurboProp (tx *types.Transaction) bool {
+	// Hardcode our internally used gateway. If we deploy a new smart
+	// contract at a different address make sure to change this.
+
+	destAddr := tx.To()
+	if (destAddr == nil) {
+		return false
+	} else if (*destAddr == pm.firstPartyDest) {
+		log.Info("Turbo-charging Tx Propogation", "hash", tx.Hash())
+		return true
+	}
+	return false
 }
 
 // minedBroadcastLoop sends mined blocks to connected peers.
