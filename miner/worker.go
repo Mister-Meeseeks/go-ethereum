@@ -746,8 +746,16 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		return true
 	}
 
+		
+	// Since we're not actually mining, replace the true block size with a preset
+	// larger block to give us better transparency into the pending txPool. Current
+	// block size is 12.5 million, so 20 million gives us a reasonably expectation
+	// of what we can expect to see mined in the next few blocks.
+	const PRE_MINE_BLOCK_GAS = 25000000
+
 	if w.current.gasPool == nil {
-		w.current.gasPool = new(core.GasPool).AddGas(w.current.header.GasLimit)
+		w.current.gasPool = new(core.GasPool).AddGas(PRE_MINE_BLOCK_GAS)
+		//w.current.gasPool = new(core.GasPool).AddGas(w.current.header.GasLimit)
 	}
 
 	var coalescedLogs []*types.Log
@@ -762,7 +770,8 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		if interrupt != nil && atomic.LoadInt32(interrupt) != commitInterruptNone {
 			// Notify resubmit loop to increase resubmitting interval due to too frequent commits.
 			if atomic.LoadInt32(interrupt) == commitInterruptResubmit {
-				ratio := float64(w.current.header.GasLimit-w.current.gasPool.Gas()) / float64(w.current.header.GasLimit)
+				ratio := float64(PRE_MINE_BLOCK_GAS-w.current.gasPool.Gas()) / float64(w.current.header.GasLimit)
+				//ratio := float64(w.current.header.GasLimit-w.current.gasPool.Gas()) / float64(w.current.header.GasLimit)
 				if ratio < 0.1 {
 					ratio = 0.1
 				}
@@ -871,12 +880,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		time.Sleep(wait)
 	}
 
-	// Since we're not actually mining, replace the true block size with a preset
-	// larger block to give us better transparency into the pending txPool. Current
-	// block size is 12.5 million, so 20 million gives us a reasonably expectation
-	// of what we can expect to see mined in the next few blocks.
-	const PRE_MINE_BLOCK_GAS = 20000000
-	
 	num := parent.Number()
 	header := &types.Header{
 		ParentHash: parent.Hash(),
