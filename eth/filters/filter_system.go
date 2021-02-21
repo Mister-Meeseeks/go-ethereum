@@ -85,6 +85,7 @@ type subscription struct {
 	logsCrit  ethereum.FilterQuery
 	logs      chan []*types.Log
 	hashes    chan []common.Hash
+	trans     chan []*types.Transaction
 	headers   chan *types.Header
 	preMine   chan *miner.PreMineCommit
 	blockAnnounce  chan *types.BlockAnnounce
@@ -112,6 +113,7 @@ type EventSystem struct {
 	install       chan *subscription         // install filter for event notification
 	uninstall     chan *subscription         // remove filter for event notification
 	txsCh         chan core.NewTxsEvent      // Channel to receive new transactions event
+	txObjsCh      chan []*types.Transaction   // Channel to receive full transaction object
 	logsCh        chan []*types.Log          // Channel to receive new log event
 	pendingLogsCh chan []*types.Log          // Channel to receive new log event
 	rmLogsCh      chan core.RemovedLogsEvent // Channel to receive removed log event
@@ -253,6 +255,7 @@ func (es *EventSystem) subscribeMinedPendingLogs(crit ethereum.FilterQuery, logs
 		created:   time.Now(),
 		logs:      logs,
 		hashes:    make(chan []common.Hash),
+		trans:     make(chan []*types.Transaction),
 		headers:   make(chan *types.Header),
 		preMine:   make(chan *miner.PreMineCommit),
 		blockAnnounce:   make(chan *types.BlockAnnounce),
@@ -272,6 +275,7 @@ func (es *EventSystem) subscribeLogs(crit ethereum.FilterQuery, logs chan []*typ
 		created:   time.Now(),
 		logs:      logs,
 		hashes:    make(chan []common.Hash),
+		trans:     make(chan []*types.Transaction),
 		headers:   make(chan *types.Header),
 		preMine:   make(chan *miner.PreMineCommit),
 		blockAnnounce:   make(chan *types.BlockAnnounce),
@@ -291,6 +295,7 @@ func (es *EventSystem) subscribePendingLogs(crit ethereum.FilterQuery, logs chan
 		created:   time.Now(),
 		logs:      logs,
 		hashes:    make(chan []common.Hash),
+		trans:     make(chan []*types.Transaction),
 		headers:   make(chan *types.Header),
 		preMine:   make(chan *miner.PreMineCommit),
 		blockAnnounce:   make(chan *types.BlockAnnounce),
@@ -309,6 +314,7 @@ func (es *EventSystem) SubscribeNewHeads(headers chan *types.Header) *Subscripti
 		created:   time.Now(),
 		logs:      make(chan []*types.Log),
 		hashes:    make(chan []common.Hash),
+		trans:     make(chan []*types.Transaction),
 		headers:   headers,
 		preMine:   make(chan *miner.PreMineCommit),
 		blockAnnounce:   make(chan *types.BlockAnnounce),
@@ -327,6 +333,7 @@ func (es *EventSystem) SubscribePreMineEvents(preMine chan *miner.PreMineCommit)
 		created:   time.Now(),
 		logs:      make(chan []*types.Log),
 		hashes:    make(chan []common.Hash),
+		trans:     make(chan []*types.Transaction),
 		headers:   make(chan *types.Header),
 		preMine:   preMine,
 		blockAnnounce:   make(chan *types.BlockAnnounce),
@@ -345,6 +352,26 @@ func (es *EventSystem) SubscribePendingTxs(hashes chan []common.Hash) *Subscript
 		created:   time.Now(),
 		logs:      make(chan []*types.Log),
 		hashes:    hashes,
+		trans:     make(chan []*types.Transaction),
+		headers:   make(chan *types.Header),
+		preMine:   make(chan *miner.PreMineCommit),
+		blockAnnounce:   make(chan *types.BlockAnnounce),
+		installed: make(chan struct{}),
+		err:       make(chan error),
+	}
+	return es.subscribe(sub)
+}
+
+// SubscribePendingTxs creates a subscription that writes transaction hashes for
+// transactions that enter the transaction pool.
+func (es *EventSystem) SubscribePendingTxmsgs(trans chan []*types.Transaction) *Subscription {
+	sub := &subscription{
+		id:        rpc.NewID(),
+		typ:       PendingTransactionsSubscription,
+		created:   time.Now(),
+		logs:      make(chan []*types.Log),
+		hashes:    make(chan []common.Hash),
+		trans:     trans,
 		headers:   make(chan *types.Header),
 		preMine:   make(chan *miner.PreMineCommit),
 		blockAnnounce:   make(chan *types.BlockAnnounce),
@@ -363,6 +390,7 @@ func (es *EventSystem) SubscribeBlockAnnounce(anns chan *types.BlockAnnounce) *S
 		created:   time.Now(),
 		logs:      make(chan []*types.Log),
 		hashes:    make(chan []common.Hash),
+		trans:     make(chan []*types.Transaction),
 		headers:   make(chan *types.Header),
 		preMine:   make(chan *miner.PreMineCommit),
 		blockAnnounce:   anns,
