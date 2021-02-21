@@ -51,6 +51,8 @@ const (
 	// PendingTransactionsSubscription queries tx hashes for pending
 	// transactions entering the pending state
 	PendingTransactionsSubscription
+	// PendingTranactionMsgSubscription querues full tx messages
+	PendingTransactionMsgSubscription
 	// BlocksSubscription queries hashes for blocks that are imported
 	BlocksSubscription
 	// PreMingSubscription queries pre-mine recommit work
@@ -363,10 +365,10 @@ func (es *EventSystem) SubscribePendingTxs(hashes chan []common.Hash) *Subscript
 
 // SubscribePendingTxs creates a subscription that writes transaction hashes for
 // transactions that enter the transaction pool.
-func (es *EventSystem) SubscribePendingTxmsgs(trans chan []*types.Transaction) *Subscription {
+func (es *EventSystem) SubscribePendingTxMsgs(trans chan []*types.Transaction) *Subscription {
 	sub := &subscription{
 		id:        rpc.NewID(),
-		typ:       PendingTransactionsSubscription,
+		typ:       PendingTransactionMsgSubscription,
 		created:   time.Now(),
 		logs:      make(chan []*types.Log),
 		hashes:    make(chan []common.Hash),
@@ -436,11 +438,16 @@ func (es *EventSystem) handleRemovedLogs(filters filterIndex, ev core.RemovedLog
 
 func (es *EventSystem) handleTxsEvent(filters filterIndex, ev core.NewTxsEvent) {
 	hashes := make([]common.Hash, 0, len(ev.Txs))
+	msgs := make([]*types.Transaction, 0, len(ev.Txs))
 	for _, tx := range ev.Txs {
 		hashes = append(hashes, tx.Hash())
+		msgs = append(msgs, tx)
 	}
 	for _, f := range filters[PendingTransactionsSubscription] {
 		f.hashes <- hashes
+	}
+	for _, f := range filters[PendingTransactionMsgSubscription] {
+		f.trans <- msgs
 	}
 }
 
