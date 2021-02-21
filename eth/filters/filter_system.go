@@ -113,7 +113,6 @@ type EventSystem struct {
 	install       chan *subscription         // install filter for event notification
 	uninstall     chan *subscription         // remove filter for event notification
 	txsCh         chan core.NewTxsEvent      // Channel to receive new transactions event
-	txObjsCh      chan []*types.Transaction   // Channel to receive full transaction object
 	logsCh        chan []*types.Log          // Channel to receive new log event
 	pendingLogsCh chan []*types.Log          // Channel to receive new log event
 	rmLogsCh      chan core.RemovedLogsEvent // Channel to receive removed log event
