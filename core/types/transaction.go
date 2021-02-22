@@ -149,7 +149,7 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 	hash := tx.Hash()
 	data := tx.data
 	data.Hash = &hash
-	return data.MarshalJSON()
+	return data.MarshalJSON(tx.time)
 }
 
 // UnmarshalJSON decodes the web3 RPC transaction format.
