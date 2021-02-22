@@ -443,10 +443,16 @@ func (es *EventSystem) handleTxsEvent(filters filterIndex, ev core.NewTxsEvent) 
 		hashes = append(hashes, tx.Hash())
 		msgs = append(msgs, tx)
 	}
+	if (len(hashes) > 0) {
+		log.Info("Subscribe message", "head", msgs[0].Hash())
+	}
 	for _, f := range filters[PendingTransactionsSubscription] {
 		f.hashes <- hashes
 	}
 	for _, f := range filters[PendingTransactionMsgSubscription] {
+		if (len(msgs) > 0) {
+			log.Info("Subscribe message filter")
+		}
 		f.trans <- msgs
 	}
 }
