@@ -24,7 +24,7 @@ import (
 	"math/big"
 	"sync"
 	"time"
-
+	
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -32,6 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/miner"
 )
 
@@ -180,14 +181,18 @@ func (api *PublicFilterAPI) NewPendingTransactionMsgs(ctx context.Context) (*rpc
 	rpcSub := notifier.CreateSubscription()
 
 	go func() {
+		log.Info("Subscribe A")
 		txMsgs := make(chan []*types.Transaction, 512)
 		pendingTxSub := api.events.SubscribePendingTxMsgs(txMsgs)
+		log.Info("Subscribe B")
 
 		for {
 			select {
 			case msgs := <-txMsgs:
 				// To keep the original behaviour, send a single tx hash in one notification.
 				// TODO(rjl493456442) Send a batch of tx hashes in one notification
+				log.Info("Subscribe C")
+
 				for _, m := range msgs {
 					notifier.Notify(rpcSub.ID, m)
 				}
