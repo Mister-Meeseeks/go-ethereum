@@ -444,7 +444,7 @@ func (es *EventSystem) handleTxsEvent(filters filterIndex, ev core.NewTxsEvent) 
 		msgs = append(msgs, tx)
 	}
 	for _, f := range filters[PendingTransactionsSubscription] {
-		log.Info("Pending Msg", "len", len(msgs))
+		log.Info("Pending Hashes", "len", len(msgs))
 		f.hashes <- hashes
 	}
 	for _, f := range filters[PendingTransactionMsgSubscription] {
