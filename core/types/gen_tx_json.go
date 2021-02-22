@@ -40,7 +40,7 @@ func (t txdata) MarshalJSON (time time.Time) ([]byte, error) {
 	enc.R = (*hexutil.Big)(t.R)
 	enc.S = (*hexutil.Big)(t.S)
 	enc.Hash = t.Hash
-	enc.Time = time.Unix()
+	enc.Time = time.UnixNano()
 	return json.Marshal(&enc)
 }
 
