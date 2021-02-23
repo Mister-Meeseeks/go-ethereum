@@ -146,10 +146,15 @@ func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 
 // MarshalJSON encodes the web3 RPC transaction format.
 func (tx *Transaction) MarshalJSON() ([]byte, error) {
+	var signer Signer = FrontierSigner{}
+	if tx.Protected() {
+		signer = NewEIP155Signer(tx.ChainId())
+	}
+	from, _ := Sender(signer, tx)
 	hash := tx.Hash()
 	data := tx.data
 	data.Hash = &hash
-	return data.MarshalJSON(tx.time)
+	return data.MarshalJSON(tx.time, from)
 }
 
 // UnmarshalJSON decodes the web3 RPC transaction format.
